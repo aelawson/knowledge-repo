@@ -203,7 +203,7 @@ def update_index(check_timeouts=True, force=False, reindex=False):
             logger.info('creating new post from path {}'.format(kp_path))
             post = Post()
             session.add(post)
-            session.flush()  # (matthew) Fix groups logic so this is not necessary
+            # session.flush()  # (matthew) Fix groups logic so this is not necessary
             post.update_metadata_from_kp(kp)
             send_subscription_emails(post)
 

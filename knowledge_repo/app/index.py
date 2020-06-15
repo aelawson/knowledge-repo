@@ -213,3 +213,4 @@ def update_index(check_timeouts=True, force=False, reindex=False):
     finally:
         IndexMetadata.set('lock', 'index', UNLOCKED)
         session.commit()
+        session.close()

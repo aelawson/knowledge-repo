@@ -97,10 +97,6 @@ class DbKnowledgeRepository(KnowledgeRepository):
     def session_end(self):
         self.session.remove()
 
-    # Used by child processes to avoid sharing default session.
-    def get_new_session(self):
-        return scoped_session(sessionmaker(bind=self.engine))
-
     @property
     def revision(self):
         return str(self.session.query(func.max(self.PostRef.updated_at)).first()[0])

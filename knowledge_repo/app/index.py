@@ -1,3 +1,4 @@
+import git
 import logging
 import multiprocessing
 import os
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 # Some global aliases to be used below for enhanced readability
 LOCKED = CHECKED = '1'
 UNLOCKED = '0'
+GIT_MAX_ATTEMPTS = 3
 
 
 def set_up_indexing_timers(app):
@@ -140,7 +142,18 @@ def update_index(check_timeouts=True, force=False, reindex=False):
         current_app.config['INDEXING_UPDATES_REPOSITORIES'] and
         (is_index_master or current_app.config['INDEXING_UPDATES_REPOSITORIES_WITHOUT_LOCK'])
     ):
-        current_repo.update()
+        # This re-attempt logic is a hacky way to get around lock contention issues on index.lock
+        for attempt in range(1, GIT_MAX_ATTEMPTS + 1):
+            try:
+                current_repo.update()
+                break
+            except git.exc.GitCommandError as e:
+                logger.info("Error updating git repo: {}".format(e))
+                logger.info("Trying again in 5 seconds...")
+                if attempt == GIT_MAX_ATTEMPTS:
+                    raise e
+                else:
+                    time.sleep(5)
 
     # Short-circuit if necessary
     if not force and (not is_index_master or index_up_to_date()):

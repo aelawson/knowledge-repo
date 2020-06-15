@@ -136,7 +136,7 @@ class ErrorLog(db.Model):
                 db_session.rollback()
                 db_session.add(ErrorLog.from_exception(e))
                 db_session.commit()
-                raise e.with_traceback()
+                raise_with_traceback(e)
         return wrapped
 
 

@@ -3,7 +3,7 @@ import multiprocessing
 import os
 import time
 
-from .proxies import db_session, current_repo, current_app
+from .proxies import db, current_repo, current_app
 from .models import ErrorLog, Post, IndexMetadata
 from .utils.emails import send_subscription_emails
 from .utils.time import time_since
@@ -50,11 +50,11 @@ def set_up_indexing_timers(app):
             update_index()
 
 
-def acquire_index_lock():
+def acquire_index_lock(session):
     if IndexMetadata.get('lock', 'master_check', None) is None:
         try:
             IndexMetadata.set('lock', 'master_check', current_app.uuid)
-            db_session.commit()
+            session.commit()
             if (
                 IndexMetadata.get('lock', 'index_master') == current_app.uuid or
                 time_since(IndexMetadata.get_last_update('lock', 'index_master'), default=current_app.config["INDEXING_TIMEOUT"] + 1) > current_app.config["INDEXING_TIMEOUT"]
@@ -63,7 +63,7 @@ def acquire_index_lock():
                 return True
         finally:
             IndexMetadata.set('lock', 'master_check', None)
-            db_session.commit()
+            session.commit()
     return False
 
 
@@ -130,7 +130,8 @@ def update_index(check_timeouts=True, force=False, reindex=False):
     if check_timeouts and not index_due_for_update():
         return False
 
-    is_index_master = acquire_index_lock()
+    session = db.get_new_session()
+    is_index_master = acquire_index_lock(session)
 
     # Check for update to repositories if configured to do so
     if (
@@ -142,8 +143,6 @@ def update_index(check_timeouts=True, force=False, reindex=False):
     # Short-circuit if necessary
     if not force and (not is_index_master or index_up_to_date()):
         return False
-
-    session = current_repo.get_new_session()
 
     try:
         IndexMetadata.set('lock', 'index', LOCKED)

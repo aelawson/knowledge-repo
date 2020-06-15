@@ -49,7 +49,6 @@ class DbKnowledgeRepository(KnowledgeRepository):
                               Column('data', LargeBinary))
 
         self.engine = create_engine(engine_uri, pool_recycle=3600)
-        self.add_engine_pidguard(self.engine)
 
         self.session = scoped_session(sessionmaker(bind=self.engine))
         if auto_create:
@@ -59,35 +58,6 @@ class DbKnowledgeRepository(KnowledgeRepository):
             pass
         mapper(PostRef, postref_table)
         self.PostRef = PostRef
-
-    def add_engine_pidguard(self, engine):
-        """Add multiprocessing guards.
-
-        Forces a connection to be reconnected if it is detected
-        as having been shared to a sub-process.
-
-        """
-
-        @event.listens_for(engine, "connect")
-        def connect(dbapi_connection, connection_record):
-            connection_record.info['pid'] = os.getpid()
-
-        @event.listens_for(engine, "checkout")
-        def checkout(dbapi_connection, connection_record, connection_proxy):
-            pid = os.getpid()
-            if connection_record.info['pid'] != pid:
-                # substitute log.debug() or similar here as desired
-                warnings.warn(
-                    "Parent process %(orig)s forked (%(newproc)s) with an open "
-                    "database connection, "
-                    "which is being discarded and recreated." %
-                    {"newproc": pid, "orig": connection_record.info['pid']})
-                connection_record.connection = connection_proxy.connection = None
-                raise exc.DisconnectionError(
-                    "Connection record belongs to pid %s, "
-                    "attempting to check out in pid %s" %
-                    (connection_record.info['pid'], pid)
-                )
 
     # ------------- Repository actions / state ------------------------------------
 

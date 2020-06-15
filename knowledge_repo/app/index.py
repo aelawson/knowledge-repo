@@ -4,7 +4,7 @@ import multiprocessing
 import os
 import time
 
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker
 
 from .proxies import db, current_repo, current_app
 from .models import ErrorLog, Post, IndexMetadata
@@ -41,6 +41,8 @@ def set_up_indexing_timers(app):
                 time.sleep(app.config['INDEXING_TIMEOUT'])
 
         def index_sync_loop(app):
+            current_app.db.engine.dispose()
+
             while True:
                 with app.app_context():
                     update_index(check_timeouts=False)
@@ -134,7 +136,7 @@ def update_index(check_timeouts=True, force=False, reindex=False):
     if check_timeouts and not index_due_for_update():
         return False
 
-    session = scoped_session(sessionmaker(bind=db.engine))
+    session = sessionmaker(bind=db.engine)
     is_index_master = acquire_index_lock(session)
 
     # Check for update to repositories if configured to do so
@@ -160,7 +162,7 @@ def update_index(check_timeouts=True, force=False, reindex=False):
         return False
 
     try:
-        IndexMetadata.set('lock', 'index', LOCKED)
+        IndexMetadata.set('lock', 'index', LOCKED, session=session)
 
         session.commit()
 
@@ -209,8 +211,8 @@ def update_index(check_timeouts=True, force=False, reindex=False):
 
         # Record revision
         for uri, revision in current_repo.revisions.items():
-            IndexMetadata.set('repository_revision', uri, str(revision))
+            IndexMetadata.set('repository_revision', uri, str(revision), session=session)
     finally:
-        IndexMetadata.set('lock', 'index', UNLOCKED)
+        IndexMetadata.set('lock', 'index', UNLOCKED, session=session)
         session.commit()
         session.close()

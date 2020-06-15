@@ -143,10 +143,11 @@ def update_index(check_timeouts=True, force=False, reindex=False):
     if not force and (not is_index_master or index_up_to_date()):
         return False
 
+    session = current_repo.get_new_session()
+
     try:
         IndexMetadata.set('lock', 'index', LOCKED)
 
-        session = current_repo.get_new_session()
         session.commit()
 
         kr_dir = {kp.path: kp for kp in current_repo.posts()}

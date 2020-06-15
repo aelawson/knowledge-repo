@@ -136,7 +136,7 @@ def update_index(check_timeouts=True, force=False, reindex=False):
     if check_timeouts and not index_due_for_update():
         return False
 
-    session = sessionmaker(bind=db.engine)
+    session = sessionmaker(bind=db.engine)()
     is_index_master = acquire_index_lock(session)
 
     # Check for update to repositories if configured to do so

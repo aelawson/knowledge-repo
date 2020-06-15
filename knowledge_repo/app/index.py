@@ -117,9 +117,9 @@ def index_due_for_update():
     return True
 
 
-def index_up_to_date():
+def index_up_to_date(session):
     for uri, revision in current_repo.revisions.items():
-        indexed_revision = IndexMetadata.get('repository_revision', uri)
+        indexed_revision = IndexMetadata.get('repository_revision', uri, session=session)
         if indexed_revision is None or indexed_revision < str(revision):
             return False
     return True
@@ -156,7 +156,7 @@ def update_index(check_timeouts=True, force=False, reindex=False):
                     time.sleep(5)
 
     # Short-circuit if necessary
-    if not force and (not is_index_master or index_up_to_date()):
+    if not force and (not is_index_master or index_up_to_date(session)):
         return False
 
     try:

@@ -35,25 +35,25 @@ class IndexMetadata(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     @classmethod
-    def get(cls, type, name, default=None):
-        m = db_session.query(IndexMetadata).filter(IndexMetadata.type == type).filter(IndexMetadata.name == name).first()
+    def get(cls, type, name, default=None, session=db_session):
+        m = session.query(IndexMetadata).filter(IndexMetadata.type == type).filter(IndexMetadata.name == name).first()
         if m is not None:
             return m.value
         return default
 
     @classmethod
-    def set(cls, type, name, value):
-        m = db_session.query(IndexMetadata).filter(IndexMetadata.type == type).filter(IndexMetadata.name == name).first()
+    def set(cls, type, name, value, session=db_session):
+        m = session.query(IndexMetadata).filter(IndexMetadata.type == type).filter(IndexMetadata.name == name).first()
         if m is not None:
             m.value = value
             m.updated_at = datetime.datetime.utcnow()
         else:
             m = IndexMetadata(type=type, name=name, value=value, updated_at=datetime.datetime.utcnow())
-            db_session.add(m)
+            session.add(m)
 
     @classmethod
-    def get_last_update(cls, type, name):
-        m = db_session.query(IndexMetadata).filter(IndexMetadata.type == type).filter(IndexMetadata.name == name).first()
+    def get_last_update(cls, type, name,  session=db_session):
+        m = session.query(IndexMetadata).filter(IndexMetadata.type == type).filter(IndexMetadata.name == name).first()
         if m is not None:
             return m.updated_at
         return None

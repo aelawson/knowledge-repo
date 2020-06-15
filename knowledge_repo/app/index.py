@@ -55,18 +55,18 @@ def set_up_indexing_timers(app):
 
 
 def acquire_index_lock(session):
-    if IndexMetadata.get('lock', 'master_check', None) is None:
+    if IndexMetadata.get('lock', 'master_check', None, session=session) is None:
         try:
-            IndexMetadata.set('lock', 'master_check', current_app.uuid)
+            IndexMetadata.set('lock', 'master_check', current_app.uuid, session=session)
             session.commit()
             if (
-                IndexMetadata.get('lock', 'index_master') == current_app.uuid or
+                IndexMetadata.get('lock', 'index_master', session=session) == current_app.uuid or
                 time_since(IndexMetadata.get_last_update('lock', 'index_master'), default=current_app.config["INDEXING_TIMEOUT"] + 1) > current_app.config["INDEXING_TIMEOUT"]
             ):
-                IndexMetadata.set('lock', 'index_master', current_app.uuid)  # Update/set lock and update timestamp
+                IndexMetadata.set('lock', 'index_master', current_app.uuid, session=session)  # Update/set lock and update timestamp
                 return True
         finally:
-            IndexMetadata.set('lock', 'master_check', None)
+            IndexMetadata.set('lock', 'master_check', None, session=session)
             session.commit()
     return False
 

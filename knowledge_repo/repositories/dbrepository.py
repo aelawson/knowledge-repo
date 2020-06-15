@@ -90,11 +90,16 @@ class DbKnowledgeRepository(KnowledgeRepository):
                 )
 
     # ------------- Repository actions / state ------------------------------------
+
     def session_begin(self):
         pass
 
     def session_end(self):
         self.session.remove()
+
+    # Used by child processes to avoid sharing default session.
+    def get_new_session(self):
+        return scoped_session(sessionmaker(bind=self.engine))
 
     @property
     def revision(self):

@@ -37,7 +37,6 @@ def set_up_indexing_timers(app):
                 time.sleep(app.config['INDEXING_TIMEOUT'])
 
         def index_sync_loop(app):
-            current_app.db.engine.dispose()
             while True:
                 with app.app_context():
                     update_index(check_timeouts=False)
@@ -146,11 +145,13 @@ def update_index(check_timeouts=True, force=False, reindex=False):
 
     try:
         IndexMetadata.set('lock', 'index', LOCKED)
-        db_session.commit()
+
+        session = current_repo.get_new_session()
+        session.commit()
 
         kr_dir = {kp.path: kp for kp in current_repo.posts()}
         kr_uuids = {kp.uuid: kp for kp in kr_dir.values()}
-        posts = db_session.query(Post).all()
+        posts = session.query(Post).all()
 
         for post in posts:
 
@@ -186,8 +187,8 @@ def update_index(check_timeouts=True, force=False, reindex=False):
                 continue
             logger.info('creating new post from path {}'.format(kp_path))
             post = Post()
-            db_session.add(post)
-            db_session.flush()  # (matthew) Fix groups logic so this is not necessary
+            session.add(post)
+            session.flush()  # (matthew) Fix groups logic so this is not necessary
             post.update_metadata_from_kp(kp)
             send_subscription_emails(post)
 
@@ -196,4 +197,4 @@ def update_index(check_timeouts=True, force=False, reindex=False):
             IndexMetadata.set('repository_revision', uri, str(revision))
     finally:
         IndexMetadata.set('lock', 'index', UNLOCKED)
-        db_session.commit()
+        session.commit()

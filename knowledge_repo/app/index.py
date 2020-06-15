@@ -3,6 +3,8 @@ import multiprocessing
 import os
 import time
 
+from sqlalchemy.orm import sessionmaker, scoped_session
+
 from .proxies import db, current_repo, current_app
 from .models import ErrorLog, Post, IndexMetadata
 from .utils.emails import send_subscription_emails
@@ -130,7 +132,7 @@ def update_index(check_timeouts=True, force=False, reindex=False):
     if check_timeouts and not index_due_for_update():
         return False
 
-    session = db.get_new_session()
+    session = scoped_session(sessionmaker(bind=db.engine))
     is_index_master = acquire_index_lock(session)
 
     # Check for update to repositories if configured to do so
